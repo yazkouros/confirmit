@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard P&L 2026 — Jan / Fév</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card2: #1e2130;
+    --border: #2a2f45;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --accent-blue: #4f9cf9;
+    --accent-green: #34d399;
+    --accent-red: #f87171;
+    --accent-orange: #fb923c;
+    --accent-purple: #a78bfa;
+    --opti: #4f9cf9;
+    --rea: #34d399;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 28px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .header-left p  { color: var(--muted); font-size: 0.85rem; margin-top: 3px; }
+  .legend { display: flex; gap: 16px; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-rea   { background: var(--rea); }
+  .dot-opti  { background: var(--opti); }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; align-items: center;
+  }
+  .filter-label { font-size: 0.78rem; color: var(--muted); margin-right: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .btn-filter {
+    padding: 7px 18px; border-radius: 20px; border: 1.5px solid var(--border);
+    background: var(--card); color: var(--muted); font-size: 0.82rem; font-weight: 500;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-filter:hover { border-color: var(--accent-blue); color: var(--text); }
+  .btn-filter.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; font-weight: 600; }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; position: relative; overflow: hidden;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--accent-color, var(--accent-blue));
+  }
+  .kpi-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+  .kpi-rea   { font-size: 1.6rem; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .kpi-compare { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .kpi-opti-val { font-size: 0.82rem; color: var(--muted); }
+  .kpi-delta {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 0.78rem; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+  }
+  .delta-pos { background: rgba(52,211,153,.15); color: var(--accent-green); }
+  .delta-neg { background: rgba(248,113,113,.15); color: var(--accent-red); }
+  .delta-neu { background: rgba(148,163,184,.1); color: var(--muted); }
+
+  /* ── CHARTS GRID ── */
+  .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .chart-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+  }
+  .chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .chart-title span { font-size: 0.75rem; color: var(--muted); font-weight: 400; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* ── WATERFALL ── */
+  .waterfall-wrap { position: relative; height: 300px; }
+
+  /* ── TABLE ── */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; overflow-x: auto; }
+  .table-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { color: var(--muted); font-weight: 500; text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  th:first-child { text-align: left; }
+  td { padding: 8px 10px; border-bottom: 1px solid rgba(42,47,69,.5); text-align: right; }
+  td:first-child { text-align: left; color: var(--text); font-weight: 500; }
+  tr:last-child td { border-bottom: none; }
+  .row-section td { background: var(--card2); color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  .col-rea   { color: var(--rea); }
+  .col-opti  { color: var(--opti); }
+  .col-delta { font-weight: 600; }
+  .pos { color: var(--accent-green); }
+  .neg { color: var(--accent-red); }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; font-size: 0.72rem; color: var(--muted); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Dashboard P&L 2026</h1>
+    <p>Réalisé vs Optimiste — Janvier & Février 2026</p>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-rea"></div> Réalisé</div>
+    <div class="legend-item"><div class="dot dot-opti"></div> Optimiste</div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">Période :</span>
+  <button class="btn-filter" id="btn-jan"    onclick="setMonth(0)">Janvier</button>
+  <button class="btn-filter" id="btn-feb"    onclick="setMonth(1)">Février</button>
+  <button class="btn-filter active" id="btn-ytd" onclick="setMonth(2)">Cumul Jan–Fév</button>
+</div>
+
+<!-- KPI CARDS -->
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<!-- CHARTS ROW 1 -->
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Chiffre d'affaires <span>Réalisé vs Optimiste</span></div>
+    <div class="chart-wrap"><canvas id="chartCA"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Marge Brute <span>Réalisé vs Optimiste</span></div>
+    <div class="chart-wrap"><canvas id="chartMB"></canvas></div>
+  </div>
+</div>
+
+<!-- CHARTS ROW 2 -->
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-title">Marge Nette <span>Réalisé vs Optimiste</span></div>
+    <div class="chart-wrap"><canvas id="chartMN"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Taux de marge — Réalisé <span>% du CA</span></div>
+    <div class="chart-wrap"><canvas id="chartTaux"></canvas></div>
+  </div>
+</div>
+
+<!-- WATERFALL (charges breakdown) -->
+<div class="charts-row">
+  <div class="chart-card" style="grid-column: 1 / -1">
+    <div class="chart-title">Décomposition P&L — Réalisé <span>Charges directes + Charges structure → Marges</span></div>
+    <div class="waterfall-wrap"><canvas id="chartWaterfall"></canvas></div>
+  </div>
+</div>
+
+<!-- DETAIL TABLE -->
+<div class="table-card">
+  <div class="table-title">Tableau de bord détaillé</div>
+  <table id="detail-table">
+    <thead>
+      <tr>
+        <th>Indicateur</th>
+        <th class="col-rea">Réalisé</th>
+        <th class="col-opti">Optimiste</th>
+        <th>Écart</th>
+        <th>Écart %</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<div class="footer">Dashboard P&L — Données extraites du fichier Suivi P&L 2026 · Généré le 14/03/2026</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════════════════
+const MONTHS = ['Janvier', 'Février'];
+
+const D = {
+  ca:   { opti: [710825.18, 759597.68], rea: [691546.67, 704905.34] },
+  cd:   { opti: [609099.29, 649759.11], rea: [593160.80, 634846.98] },
+  mb:   { opti: [101725.90, 109838.58], rea: [98385.87,   70058.36] },
+  cs:   { bud:  [107693.87, 139549.04], rea: [106652.49, 125032.24] },   // no optimiste for struct
+  mn:   { opti: [-5967.97, -29710.46], rea: [-8266.62,  -54973.88] },
+};
+
+// compute taux
+function taux(num, denom) { return denom ? num / denom * 100 : 0; }
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let currentMonth = 2; // 0=Jan, 1=Fév, 2=YTD
+
+function getData(key, scenario) {
+  const arr = D[key][scenario];
+  if (currentMonth === 2) return arr[0] + arr[1];
+  return arr[currentMonth];
+}
+
+function getCS(scenario) {
+  const arr = scenario === 'opti' ? D.cs.bud : D.cs.rea; // optimiste uses bud structure
+  if (currentMonth === 2) return arr[0] + arr[1];
+  return arr[currentMonth];
+}
+
+// ════════════════════════════════════════════════════════
+//  FORMATTERS
+// ════════════════════════════════════════════════════════
+const fmt = (v, digits=0) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: digits }).format(v);
+const fmtK = v => (Math.abs(v) >= 1000 ? fmt(v/1000, 1) + ' k€' : fmt(v) + ' €');
+const fmtEur = v => fmt(v) + ' €';
+const fmtPct = v => (v > 0 ? '+' : '') + v.toFixed(1) + ' %';
+
+// ════════════════════════════════════════════════════════
+//  DELTA BADGE
+// ════════════════════════════════════════════════════════
+function deltaBadge(rea, opti) {
+  const delta = rea - opti;
+  const pct   = opti ? delta / Math.abs(opti) * 100 : 0;
+  const cls   = delta >= 0 ? 'delta-pos' : 'delta-neg';
+  const arr   = delta >= 0 ? '▲' : '▼';
+  return `<span class="kpi-delta ${cls}">${arr} ${Math.abs(pct).toFixed(1)} %</span>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  KPI CARDS
+// ════════════════════════════════════════════════════════
+function renderKPIs() {
+  const ca_rea  = getData('ca','rea'),  ca_opti  = getData('ca','opti');
+  const mb_rea  = getData('mb','rea'),  mb_opti  = getData('mb','opti');
+  const mn_rea  = getData('mn','rea'),  mn_opti  = getData('mn','opti');
+  const cs_rea  = getCS('rea'),         cs_opti  = getCS('opti');
+  const cd_rea  = getData('cd','rea'),  cd_opti  = getData('cd','opti');
+
+  const taux_mb_rea  = taux(mb_rea, ca_rea);
+  const taux_mb_opti = taux(mb_opti, ca_opti);
+  const taux_mn_rea  = taux(mn_rea, ca_rea);
+  const taux_mn_opti = taux(mn_opti, ca_opti);
+
+  const cards = [
+    {
+      label: "Chiffre d'affaires",
+      color: 'var(--accent-blue)',
+      rea: fmtK(ca_rea),
+      sub: `Optimiste : ${fmtK(ca_opti)}`,
+      badge: deltaBadge(ca_rea, ca_opti)
+    },
+    {
+      label: "Marge Brute",
+      color: 'var(--accent-green)',
+      rea: fmtK(mb_rea),
+      sub: `Optimiste : ${fmtK(mb_opti)}`,
+      badge: deltaBadge(mb_rea, mb_opti)
+    },
+    {
+      label: "Taux Marge Brute",
+      color: 'var(--accent-green)',
+      rea: taux_mb_rea.toFixed(1) + ' %',
+      sub: `Optimiste : ${taux_mb_opti.toFixed(1)} %`,
+      badge: (() => {
+        const d = taux_mb_rea - taux_mb_opti;
+        const cls = d >= 0 ? 'delta-pos' : 'delta-neg';
+        const arr = d >= 0 ? '▲' : '▼';
+        return `<span class="kpi-delta ${cls}">${arr} ${Math.abs(d).toFixed(1)} pts</span>`;
+      })()
+    },
+    {
+      label: "Charges Directes",
+      color: 'var(--accent-orange)',
+      rea: fmtK(cd_rea),
+      sub: `Optimiste : ${fmtK(cd_opti)}`,
+      badge: (() => {
+        // lower is better for charges
+        const d = cd_rea - cd_opti;
+        const cls = d <= 0 ? 'delta-pos' : 'delta-neg';
+        const arr = d <= 0 ? '▼' : '▲';
+        const pct = cd_opti ? Math.abs(d / cd_opti * 100) : 0;
+        return `<span class="kpi-delta ${cls}">${arr} ${pct.toFixed(1)} %</span>`;
+      })()
+    },
+    {
+      label: "Charges de Structure",
+      color: 'var(--accent-orange)',
+      rea: fmtK(cs_rea),
+      sub: `Budget : ${fmtK(cs_opti)}`,
+      badge: (() => {
+        const d = cs_rea - cs_opti;
+        const cls = d <= 0 ? 'delta-pos' : 'delta-neg';
+        const arr = d <= 0 ? '▼' : '▲';
+        const pct = cs_opti ? Math.abs(d / cs_opti * 100) : 0;
+        return `<span class="kpi-delta ${cls}">${arr} ${pct.toFixed(1)} %</span>`;
+      })()
+    },
+    {
+      label: "Marge Nette",
+      color: mn_rea >= 0 ? 'var(--accent-green)' : 'var(--accent-red)',
+      rea: fmtK(mn_rea),
+      sub: `Optimiste : ${fmtK(mn_opti)}`,
+      badge: deltaBadge(mn_rea, mn_opti)
+    },
+  ];
+
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = cards.map(c => `
+    <div class="kpi-card" style="--accent-color:${c.color}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-rea">${c.rea}</div>
+      <div class="kpi-compare">
+        <span class="kpi-opti-val">${c.sub}</span>
+        ${c.badge}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  CHART HELPERS
+// ════════════════════════════════════════════════════════
+const CHART_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: {
+    backgroundColor: '#1e2130', borderColor: '#2a2f45', borderWidth: 1,
+    titleColor: '#e2e8f0', bodyColor: '#8892a4',
+    callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) + ' €' }
+  }},
+  scales: {
+    x: { grid: { color: 'rgba(42,47,69,.5)' }, ticks: { color: '#8892a4', font:{size:11} } },
+    y: { grid: { color: 'rgba(42,47,69,.5)' }, ticks: { color: '#8892a4', font:{size:11}, callback: v => fmtK(v) } }
+  }
+};
+
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function getLabels() {
+  if (currentMonth === 2) return MONTHS;
+  return [MONTHS[currentMonth]];
+}
+
+function getPair(key, scenario_a, scenario_b) {
+  if (currentMonth === 2) return { a: D[key][scenario_a], b: D[key][scenario_b] };
+  return { a: [D[key][scenario_a][currentMonth]], b: [D[key][scenario_b][currentMonth]] };
+}
+
+// ════════════════════════════════════════════════════════
+//  CHARTS
+// ════════════════════════════════════════════════════════
+function buildCA() {
+  destroyChart('ca');
+  const { a: rea, b: opti } = getPair('ca','rea','opti');
+  const labels = getLabels();
+  charts.ca = new Chart(document.getElementById('chartCA'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Réalisé', data: rea, backgroundColor: 'rgba(52,211,153,.75)', borderColor: '#34d399', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Optimiste', data: opti, backgroundColor: 'rgba(79,156,249,.4)', borderColor: '#4f9cf9', borderWidth: 1.5, borderRadius: 5 }
+      ]
+    },
+    options: { ...CHART_OPTS, plugins: { ...CHART_OPTS.plugins, legend: { display: true, labels: { color: '#8892a4', boxWidth: 12, font: {size:11} } } } }
+  });
+}
+
+function buildMB() {
+  destroyChart('mb');
+  const { a: rea, b: opti } = getPair('mb','rea','opti');
+  const labels = getLabels();
+  charts.mb = new Chart(document.getElementById('chartMB'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Réalisé', data: rea, backgroundColor: 'rgba(52,211,153,.75)', borderColor: '#34d399', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Optimiste', data: opti, backgroundColor: 'rgba(79,156,249,.4)', borderColor: '#4f9cf9', borderWidth: 1.5, borderRadius: 5 }
+      ]
+    },
+    options: { ...CHART_OPTS, plugins: { ...CHART_OPTS.plugins, legend: { display: true, labels: { color: '#8892a4', boxWidth: 12, font: {size:11} } } } }
+  });
+}
+
+function buildMN() {
+  destroyChart('mn');
+  const { a: rea, b: opti } = getPair('mn','rea','opti');
+  const labels = getLabels();
+  charts.mn = new Chart(document.getElementById('chartMN'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Réalisé', data: rea,
+          backgroundColor: rea.map(v => v >= 0 ? 'rgba(52,211,153,.75)' : 'rgba(248,113,113,.75)'),
+          borderColor:     rea.map(v => v >= 0 ? '#34d399' : '#f87171'),
+          borderWidth: 1.5, borderRadius: 5
+        },
+        {
+          label: 'Optimiste', data: opti,
+          backgroundColor: opti.map(v => v >= 0 ? 'rgba(79,156,249,.4)' : 'rgba(251,146,60,.3)'),
+          borderColor:     opti.map(v => v >= 0 ? '#4f9cf9' : '#fb923c'),
+          borderWidth: 1.5, borderRadius: 5
+        }
+      ]
+    },
+    options: { ...CHART_OPTS, plugins: { ...CHART_OPTS.plugins, legend: { display: true, labels: { color: '#8892a4', boxWidth: 12, font: {size:11} } } } }
+  });
+}
+
+function buildTaux() {
+  destroyChart('taux');
+  const labels = getLabels();
+
+  let mb_rea, ca_rea, mn_rea;
+  if (currentMonth === 2) {
+    mb_rea = D.mb.rea; ca_rea = D.ca.rea; mn_rea = D.mn.rea;
+  } else {
+    mb_rea = [D.mb.rea[currentMonth]]; ca_rea = [D.ca.rea[currentMonth]]; mn_rea = [D.mn.rea[currentMonth]];
+  }
+  const taux_mb = mb_rea.map((v,i) => +(v / ca_rea[i] * 100).toFixed(2));
+  const taux_mn = mn_rea.map((v,i) => +(v / ca_rea[i] * 100).toFixed(2));
+
+  charts.taux = new Chart(document.getElementById('chartTaux'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Taux MB', data: taux_mb, backgroundColor: 'rgba(52,211,153,.7)', borderColor: '#34d399', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Taux MN', data: taux_mn, backgroundColor: taux_mn.map(v => v >= 0 ? 'rgba(79,156,249,.5)' : 'rgba(248,113,113,.5)'), borderColor: taux_mn.map(v => v >= 0 ? '#4f9cf9' : '#f87171'), borderWidth: 1.5, borderRadius: 5 }
+      ]
+    },
+    options: {
+      ...CHART_OPTS,
+      plugins: { ...CHART_OPTS.plugins, legend: { display: true, labels: { color: '#8892a4', boxWidth: 12, font: {size:11} } } },
+      scales: {
+        x: { grid: { color: 'rgba(42,47,69,.5)' }, ticks: { color: '#8892a4', font:{size:11} } },
+        y: { grid: { color: 'rgba(42,47,69,.5)' }, ticks: { color: '#8892a4', font:{size:11}, callback: v => v.toFixed(1) + ' %' } }
+      }
+    }
+  });
+}
+
+function buildWaterfall() {
+  destroyChart('wf');
+  const labels = getLabels();
+
+  let ca_r, cd_r, cs_r, mb_r, mn_r;
+  if (currentMonth === 2) {
+    ca_r = D.ca.rea; cd_r = D.cd.rea; cs_r = D.cs.rea;
+    mb_r = D.mb.rea; mn_r = D.mn.rea;
+  } else {
+    ca_r = [D.ca.rea[currentMonth]]; cd_r = [D.cd.rea[currentMonth]]; cs_r = [D.cs.rea[currentMonth]];
+    mb_r = [D.mb.rea[currentMonth]]; mn_r = [D.mn.rea[currentMonth]];
+  }
+
+  charts.wf = new Chart(document.getElementById('chartWaterfall'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'CA Réalisé',           data: ca_r, backgroundColor: 'rgba(79,156,249,.6)',   borderColor: '#4f9cf9', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Charges Directes',      data: cd_r, backgroundColor: 'rgba(251,146,60,.6)',   borderColor: '#fb923c', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Marge Brute',           data: mb_r, backgroundColor: 'rgba(52,211,153,.7)',   borderColor: '#34d399', borderWidth: 1.5, borderRadius: 5 },
+        { label: 'Charges de Structure',  data: cs_r, backgroundColor: 'rgba(248,113,113,.6)', borderColor: '#f87171', borderWidth: 1.5, borderRadius: 5 },
+        {
+          label: 'Marge Nette',
+          data: mn_r,
+          backgroundColor: mn_r.map(v => v >= 0 ? 'rgba(52,211,153,.9)' : 'rgba(248,113,113,.9)'),
+          borderColor:     mn_r.map(v => v >= 0 ? '#34d399' : '#f87171'),
+          borderWidth: 1.5, borderRadius: 5
+        }
+      ]
+    },
+    options: {
+      ...CHART_OPTS,
+      plugins: {
+        ...CHART_OPTS.plugins,
+        legend: { display: true, position: 'bottom', labels: { color: '#8892a4', boxWidth: 12, font: {size:11}, padding: 16 } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(42,47,69,.5)' }, ticks: { color: '#8892a4', font:{size:11} } },
+        y: { grid: { color: 'rgba(42,47,69,.5)' }, ticks: { color: '#8892a4', font:{size:11}, callback: v => fmtK(v) } }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  TABLE
+// ════════════════════════════════════════════════════════
+function renderTable() {
+  const ca_r = getData('ca','rea'),  ca_o = getData('ca','opti');
+  const cd_r = getData('cd','rea'),  cd_o = getData('cd','opti');
+  const mb_r = getData('mb','rea'),  mb_o = getData('mb','opti');
+  const cs_r = getCS('rea'),         cs_o = getCS('opti');
+  const mn_r = getData('mn','rea'),  mn_o = getData('mn','opti');
+
+  const taux_mb_r = taux(mb_r, ca_r), taux_mb_o = taux(mb_o, ca_o);
+  const taux_mn_r = taux(mn_r, ca_r), taux_mn_o = taux(mn_o, ca_o);
+
+  function row(label, rea, opti, isCharges=false, isPct=false) {
+    const delta = rea - opti;
+    const pct   = opti ? delta / Math.abs(opti) * 100 : 0;
+    // for charges: negative delta = better (spent less)
+    const good  = isCharges ? delta <= 0 : delta >= 0;
+    const cls   = delta === 0 ? 'col-delta' : (good ? 'col-delta pos' : 'col-delta neg');
+    const sign  = delta >= 0 ? '+' : '';
+    if (isPct) {
+      return `<tr>
+        <td>${label}</td>
+        <td class="col-rea">${rea.toFixed(1)} %</td>
+        <td class="col-opti">${opti.toFixed(1)} %</td>
+        <td class="${cls}">${sign}${delta.toFixed(1)} pts</td>
+        <td class="${cls}">—</td>
+      </tr>`;
+    }
+    return `<tr>
+      <td>${label}</td>
+      <td class="col-rea">${fmtEur(rea)}</td>
+      <td class="col-opti">${fmtEur(opti)}</td>
+      <td class="${cls}">${sign}${fmtEur(delta)}</td>
+      <td class="${cls}">${sign}${pct.toFixed(1)} %</td>
+    </tr>`;
+  }
+
+  const html = `
+    <tr class="row-section"><td colspan="5">Chiffre d'affaires</td></tr>
+    ${row("CA Total", ca_r, ca_o)}
+    <tr class="row-section"><td colspan="5">Charges directes</td></tr>
+    ${row("Charges de production", cd_r, cd_o, true)}
+    <tr class="row-section"><td colspan="5">Marge brute</td></tr>
+    ${row("Marge Brute", mb_r, mb_o)}
+    ${row("Taux de marge brute", taux_mb_r, taux_mb_o, false, true)}
+    <tr class="row-section"><td colspan="5">Charges de structure</td></tr>
+    ${row("Charges de fonctionnement", cs_r, cs_o, true)}
+    <tr class="row-section"><td colspan="5">Marge nette</td></tr>
+    ${row("Marge Nette", mn_r, mn_o)}
+    ${row("Taux de marge nette", taux_mn_r, taux_mn_o, false, true)}
+  `;
+  document.getElementById('table-body').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════
+//  MONTH SWITCHER
+// ════════════════════════════════════════════════════════
+function setMonth(m) {
+  currentMonth = m;
+  ['btn-jan','btn-feb','btn-ytd'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', i === m);
+  });
+  renderKPIs();
+  buildCA(); buildMB(); buildMN(); buildTaux(); buildWaterfall();
+  renderTable();
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+setMonth(2);
+</script>
+</body>
+</html>
