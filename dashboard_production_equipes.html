@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Production Équipes — Jan & Fév 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f0f2f7;
+  --card: #fff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --muted: #64748b;
+  --shadow: 0 1px 3px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.07);
+
+  /* Commercial palette */
+  --com1: #2563eb; --com2: #f59e0b; --com3: #0891b2; --com4: #8b5cf6; --com5: #10b981;
+  /* Recrutement palette */
+  --rec1: #db2777; --rec2: #ea580c; --rec3: #0d9488; --rec4: #7c3aed; --rec5: #16a34a; --rec6: #0369a1; --rec7: #b45309;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+/* ── Tabs ── */
+.tab-nav { background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: stretch; padding: 0 28px; position: sticky; top: 0; z-index: 200; box-shadow: var(--shadow); }
+.tab-nav .brand { font-size: 16px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; padding: 16px 24px 16px 0; border-right: 1px solid var(--border); margin-right: 16px; white-space: nowrap; }
+.tab-btn { padding: 0 20px; height: 56px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; transition: all .15s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active-com { color: #2563eb; border-bottom-color: #2563eb; }
+.tab-btn.active-rec { color: #db2777; border-bottom-color: #db2777; }
+
+/* ── Panel headers with filters ── */
+.panel-header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 28px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; position: sticky; top: 56px; z-index: 99; box-shadow: 0 2px 4px rgba(0,0,0,.05); }
+.panel-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; position: relative; z-index: 100; }
+.filters select, .filters input { height: 34px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; font-size: 12px; color: var(--text); outline: none; cursor: pointer; transition: border-color .15s, box-shadow .15s; appearance: auto; -webkit-appearance: auto; position: relative; z-index: 100; }
+.filters select:hover { border-color: #94a3b8; }
+.filters select:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+.filters input:focus { box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+.filters input { width: 190px; }
+.com-filter select:focus, .com-filter input:focus { border-color: #2563eb; }
+.rec-filter select:focus, .rec-filter input:focus { border-color: #db2777; }
+.rec-filter select:focus { box-shadow: 0 0 0 3px rgba(219,39,119,.15); }
+.rec-filter input:focus { box-shadow: 0 0 0 3px rgba(219,39,119,.15); }
+
+/* ── Main ── */
+.panel { display: none; }
+.panel.active { display: block; }
+.main { padding: 20px 28px; max-width: 1400px; margin: 0 auto; }
+.section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 0 10px; }
+
+/* ── Podium / Ranking ── */
+.podium-section { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+.podium-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.podium-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+.podium-card { flex: 1; min-width: 130px; border-radius: 12px; padding: 16px; text-align: center; position: relative; border: 2px solid transparent; transition: transform .15s; }
+.podium-card:hover { transform: translateY(-2px); }
+.podium-rank { font-size: 22px; margin-bottom: 4px; }
+.podium-name { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+.podium-total { font-size: 26px; font-weight: 900; margin: 4px 0; }
+.podium-sub { font-size: 10px; color: var(--muted); }
+.rank-1 { background: linear-gradient(135deg, #fef9c3, #fef3c7); border-color: #f59e0b; }
+.rank-1 .podium-total { color: #b45309; }
+.rank-2 { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-color: #94a3b8; }
+.rank-2 .podium-total { color: #475569; }
+.rank-3 { background: linear-gradient(135deg, #fff7ed, #fed7aa); border-color: #f97316; }
+.rank-3 .podium-total { color: #c2410c; }
+.rank-4, .rank-5 { background: #f8fafc; border-color: var(--border); }
+.rank-4 .podium-total, .rank-5 .podium-total { color: var(--text); }
+
+/* ── KPI cards ── */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.kpi.c1::before { background: #2563eb; } .kpi.c2::before { background: #f59e0b; }
+.kpi.c3::before { background: #0891b2; } .kpi.c4::before { background: #8b5cf6; }
+.kpi.c5::before { background: #10b981; } .kpi.c6::before { background: #ef4444; }
+.kpi.r1::before { background: #db2777; } .kpi.r2::before { background: #ea580c; }
+.kpi.r3::before { background: #0d9488; } .kpi.r4::before { background: #7c3aed; }
+.kpi.r5::before { background: #16a34a; } .kpi.r6::before { background: #0369a1; }
+.kpi.r7::before { background: #b45309; }
+.kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 5px; }
+.kpi-val { font-size: 26px; font-weight: 900; line-height: 1; }
+.kpi.c1 .kpi-val { color: #2563eb; } .kpi.c2 .kpi-val { color: #f59e0b; }
+.kpi.c3 .kpi-val { color: #0891b2; } .kpi.c4 .kpi-val { color: #8b5cf6; }
+.kpi.c5 .kpi-val { color: #10b981; } .kpi.c6 .kpi-val { color: #ef4444; }
+.kpi.r1 .kpi-val { color: #db2777; } .kpi.r2 .kpi-val { color: #ea580c; }
+.kpi.r3 .kpi-val { color: #0d9488; } .kpi.r4 .kpi-val { color: #7c3aed; }
+.kpi.r5 .kpi-val { color: #16a34a; } .kpi.r6 .kpi-val { color: #0369a1; }
+.kpi.r7 .kpi-val { color: #b45309; }
+.kpi-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+/* ── Charts ── */
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.charts-row-half { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); }
+.chart-card.full { grid-column: 1 / -1; }
+.chart-head { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.chart-wrap { position: relative; }
+.chart-wrap.h240 { height: 240px; }
+.chart-wrap.h200 { height: 200px; }
+.chart-wrap.h280 { height: 280px; }
+
+/* ── Progress bars in table ── */
+.mini-bar { height: 5px; border-radius: 3px; background: #e2e8f0; margin-top: 3px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 3px; }
+
+/* ── Table ── */
+.table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 20px; }
+.table-wrap .tw-head { padding: 14px 18px 0; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #f8fafc; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; white-space: nowrap; user-select: none; }
+th:hover { color: var(--text); }
+td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f8fafc; }
+.sort-icon { opacity: .4; margin-left: 3px; }
+
+/* ── Responsive ── */
+@media (max-width: 800px) {
+  .charts-row, .charts-row-half { grid-template-columns: 1fr; }
+  .main { padding: 14px; }
+  .tab-nav { padding: 0 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── TAB NAV ── -->
+<div class="tab-nav">
+  <div class="brand">📊 Production Équipes <span style="font-weight:400;color:var(--muted);font-size:13px;margin-left:4px;">Jan &amp; Fév 2026</span></div>
+  <button class="tab-btn active-com" id="tabCom" onclick="switchTab('com')">💼 Équipe Commerciale <span style="font-size:11px;background:#eff6ff;color:#2563eb;border-radius:20px;padding:2px 7px;margin-left:6px;" id="badgeCom">5</span></button>
+  <button class="tab-btn" id="tabRec" onclick="switchTab('rec')">🎯 Équipe Recrutement <span style="font-size:11px;background:#fdf2f8;color:#db2777;border-radius:20px;padding:2px 7px;margin-left:6px;" id="badgeRec">3</span></button>
+</div>
+
+<!-- ══════════════════════════════════
+     COMMERCIAL PANEL
+══════════════════════════════════ -->
+<div class="panel active" id="panelCom">
+  <div class="panel-header">
+    <div class="panel-title" style="color:#2563eb;">💼 Lyes · Farah · Zouhir · Aurélie · Rudy</div>
+    <div class="filters com-filter">
+      <select id="comMonth" onchange="refreshCom()">
+        <option value="">Tous les mois</option>
+        <option value="2026-01">Janvier 2026</option>
+        <option value="2026-02">Février 2026</option>
+      </select>
+      <select id="comPerson" onchange="refreshCom()">
+        <option value="">Toute l'équipe</option>
+        <option value="Bouguedour Lyes">Lyes Bouguedour</option>
+        <option value="KHITER Farah">Farah Khiter</option>
+        <option value="EL KHLOUFI Zouhir">Zouhir El Khloufi</option>
+        <option value="AHTEK-CHEONG Aurélie">Aurélie Ahtek-Cheong</option>
+        <option value="GUIONET Rudy">Rudy Guionet</option>
+      </select>
+      <input type="text" id="comSearch" placeholder="🔍 Rechercher..." oninput="refreshCom()">
+    </div>
+  </div>
+  <div class="main">
+    <div class="section-label">🏆 Classement — Total actions produites</div>
+    <div class="podium-section" style="border-color:#dbeafe;">
+      <div class="podium-title" style="color:#2563eb;">Qui a le plus produit ?</div>
+      <div class="podium-grid" id="comPodium"></div>
+    </div>
+
+    <div class="section-label">KPIs de production — Équipe commerciale</div>
+    <div class="kpi-row" id="comKpis"></div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-head">Activité journalière</div>
+        <div class="chart-sub">Emails sortants &amp; appels par jour</div>
+        <div class="chart-wrap h240"><canvas id="comDailyChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">Entonnoir de conversion</div>
+        <div class="chart-sub">Du premier contact au RDV effectué</div>
+        <div id="comFunnel" style="padding-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="charts-row-half">
+      <div class="chart-card">
+        <div class="chart-head">Volume par commercial</div>
+        <div class="chart-sub">Emails, appels et RDV effectués</div>
+        <div class="chart-wrap h200"><canvas id="comPersonChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">Top sociétés contactées</div>
+        <div class="chart-sub">Nombre d'actions toutes catégories</div>
+        <div class="chart-wrap h200"><canvas id="comCompChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label">Détail par commercial &amp; mois</div>
+    <div class="table-wrap">
+      <div class="tw-head"><div class="chart-head">Tableau de performance</div><div class="chart-sub" style="margin-bottom:10px;">Cliquez sur les en-têtes pour trier</div></div>
+      <div style="overflow-x:auto;">
+        <table id="comTable">
+          <thead><tr>
+            <th onclick="sortComTable(0)">Commercial <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(1)">Mois <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(2)">Total <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(3)">📧 Emails <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(4)">📞 Appels <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(5)">📬 Entrants <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(6)">📅 RDV pris <span class="sort-icon">↕</span></th>
+            <th onclick="sortComTable(7)">✅ RDV eff. <span class="sort-icon">↕</span></th>
+          </tr></thead>
+          <tbody id="comTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     RECRUTEMENT PANEL
+══════════════════════════════════ -->
+<div class="panel" id="panelRec">
+  <div class="panel-header">
+    <div class="panel-title" style="color:#db2777;">🎯 Flora · Siwar · Caroline</div>
+    <div class="filters rec-filter">
+      <select id="recMonth" onchange="refreshRec()">
+        <option value="">Tous les mois</option>
+        <option value="2026-01">Janvier 2026</option>
+        <option value="2026-02">Février 2026</option>
+      </select>
+      <select id="recPerson" onchange="refreshRec()">
+        <option value="">Toute l'équipe</option>
+        <option value="CHALI Flora">Flora Chali</option>
+        <option value="ABDENNABI Siwar">Siwar Abdennabi</option>
+        <option value="NEUMANN Caroline">Caroline Neumann</option>
+      </select>
+      <input type="text" id="recSearch" placeholder="🔍 Rechercher..." oninput="refreshRec()">
+    </div>
+  </div>
+  <div class="main">
+    <div class="section-label">🏆 Classement — Total actions produites</div>
+    <div class="podium-section" style="border-color:#fce7f3;">
+      <div class="podium-title" style="color:#db2777;">Qui a le plus produit ?</div>
+      <div class="podium-grid" id="recPodium"></div>
+    </div>
+
+    <div class="section-label">KPIs de production — Équipe recrutement</div>
+    <div class="kpi-row" id="recKpis"></div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-head">Activité journalière</div>
+        <div class="chart-sub">Appels &amp; qualifications par jour</div>
+        <div class="chart-wrap h240"><canvas id="recDailyChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">Mix d'activités</div>
+        <div class="chart-sub">Répartition par type d'action</div>
+        <div class="chart-wrap h240"><canvas id="recDonutChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-row-half">
+      <div class="chart-card">
+        <div class="chart-head">Volume par recruteur</div>
+        <div class="chart-sub">Appels, qualifs, dossiers &amp; entretiens</div>
+        <div class="chart-wrap h200"><canvas id="recPersonChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">Top candidats/contacts</div>
+        <div class="chart-sub">Nombre d'actions par contact</div>
+        <div class="chart-wrap h200"><canvas id="recCompChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label">Détail par recruteur &amp; mois</div>
+    <div class="table-wrap">
+      <div class="tw-head"><div class="chart-head">Tableau de performance</div><div class="chart-sub" style="margin-bottom:10px;">Cliquez sur les en-têtes pour trier</div></div>
+      <div style="overflow-x:auto;">
+        <table id="recTable">
+          <thead><tr>
+            <th onclick="sortRecTable(0)">Recruteur <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(1)">Mois <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(2)">Total <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(3)">📞 Appels <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(4)">📧 Emails <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(5)">🔍 Qualifs <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(6)">📋 Préqualifs <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(7)">📁 Dossiers <span class="sort-icon">↕</span></th>
+            <th onclick="sortRecTable(8)">🤝 Entretiens <span class="sort-icon">↕</span></th>
+          </tr></thead>
+          <tbody id="recTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+//  DATA
+// ═══════════════════════════════════
+const PM_COM   = [{"responsable": "AHTEK-CHEONG Aurélie", "month": "2026-01", "total": 273, "emails_sortants": 131, "appels": 87, "emails_entrants": 28, "rdv_pris": 6, "rdv_effectues": 2}, {"responsable": "AHTEK-CHEONG Aurélie", "month": "2026-02", "total": 352, "emails_sortants": 160, "appels": 146, "emails_entrants": 23, "rdv_pris": 1, "rdv_effectues": 9}, {"responsable": "Bouguedour Lyes", "month": "2026-01", "total": 1040, "emails_sortants": 835, "appels": 106, "emails_entrants": 51, "rdv_pris": 5, "rdv_effectues": 2}, {"responsable": "Bouguedour Lyes", "month": "2026-02", "total": 690, "emails_sortants": 553, "appels": 40, "emails_entrants": 57, "rdv_pris": 5, "rdv_effectues": 5}, {"responsable": "EL KHLOUFI Zouhir", "month": "2026-01", "total": 488, "emails_sortants": 333, "appels": 129, "emails_entrants": 15, "rdv_pris": 1, "rdv_effectues": 4}, {"responsable": "EL KHLOUFI Zouhir", "month": "2026-02", "total": 462, "emails_sortants": 211, "appels": 136, "emails_entrants": 84, "rdv_pris": 2, "rdv_effectues": 6}, {"responsable": "GUIONET Rudy", "month": "2026-01", "total": 46, "emails_sortants": 9, "appels": 11, "emails_entrants": 0, "rdv_pris": 1, "rdv_effectues": 4}, {"responsable": "GUIONET Rudy", "month": "2026-02", "total": 237, "emails_sortants": 148, "appels": 30, "emails_entrants": 41, "rdv_pris": 2, "rdv_effectues": 4}, {"responsable": "KHITER Farah", "month": "2026-01", "total": 722, "emails_sortants": 592, "appels": 76, "emails_entrants": 30, "rdv_pris": 4, "rdv_effectues": 2}, {"responsable": "KHITER Farah", "month": "2026-02", "total": 880, "emails_sortants": 525, "appels": 172, "emails_entrants": 124, "rdv_pris": 2, "rdv_effectues": 1}];
+const PM_REC   = [{"responsable": "ABDENNABI Siwar", "month": "2026-01", "total": 411, "appels": 44, "emails_sortants": 89, "emails_entrants": 41, "qualifications": 49, "prequalifications": 0, "dossiers": 12, "entretiens": 0}, {"responsable": "ABDENNABI Siwar", "month": "2026-02", "total": 599, "appels": 76, "emails_sortants": 98, "emails_entrants": 42, "qualifications": 85, "prequalifications": 5, "dossiers": 24, "entretiens": 0}, {"responsable": "CHALI Flora", "month": "2026-01", "total": 507, "appels": 270, "emails_sortants": 0, "emails_entrants": 30, "qualifications": 82, "prequalifications": 1, "dossiers": 26, "entretiens": 0}, {"responsable": "CHALI Flora", "month": "2026-02", "total": 458, "appels": 252, "emails_sortants": 0, "emails_entrants": 18, "qualifications": 103, "prequalifications": 3, "dossiers": 41, "entretiens": 0}, {"responsable": "NEUMANN Caroline", "month": "2026-01", "total": 184, "appels": 106, "emails_sortants": 8, "emails_entrants": 9, "qualifications": 39, "prequalifications": 4, "dossiers": 3, "entretiens": 2}, {"responsable": "NEUMANN Caroline", "month": "2026-02", "total": 252, "appels": 127, "emails_sortants": 33, "emails_entrants": 14, "qualifications": 34, "prequalifications": 14, "dossiers": 3, "entretiens": 6}];
+const DAILY_COM = [{"date": "2026-01-02", "emails_sortants": 0, "appels": 0, "emails_entrants": 1, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-05", "emails_sortants": 11, "appels": 9, "emails_entrants": 3, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-06", "emails_sortants": 173, "appels": 4, "emails_entrants": 9, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-07", "emails_sortants": 109, "appels": 18, "emails_entrants": 1, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-08", "emails_sortants": 134, "appels": 15, "emails_entrants": 3, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-09", "emails_sortants": 13, "appels": 13, "emails_entrants": 0, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-12", "emails_sortants": 102, "appels": 11, "emails_entrants": 8, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-13", "emails_sortants": 58, "appels": 10, "emails_entrants": 1, "rdv_pris": 1, "rdv_effectues": 0}, {"date": "2026-01-14", "emails_sortants": 36, "appels": 9, "emails_entrants": 5, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-15", "emails_sortants": 333, "appels": 33, "emails_entrants": 5, "rdv_pris": 1, "rdv_effectues": 2}, {"date": "2026-01-16", "emails_sortants": 12, "appels": 3, "emails_entrants": 16, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-01-19", "emails_sortants": 45, "appels": 20, "emails_entrants": 4, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-01-20", "emails_sortants": 172, "appels": 12, "emails_entrants": 18, "rdv_pris": 1, "rdv_effectues": 0}, {"date": "2026-01-21", "emails_sortants": 177, "appels": 24, "emails_entrants": 13, "rdv_pris": 1, "rdv_effectues": 2}, {"date": "2026-01-22", "emails_sortants": 5, "appels": 48, "emails_entrants": 3, "rdv_pris": 1, "rdv_effectues": 0}, {"date": "2026-01-23", "emails_sortants": 61, "appels": 18, "emails_entrants": 5, "rdv_pris": 5, "rdv_effectues": 1}, {"date": "2026-01-26", "emails_sortants": 65, "appels": 45, "emails_entrants": 17, "rdv_pris": 1, "rdv_effectues": 0}, {"date": "2026-01-27", "emails_sortants": 42, "appels": 34, "emails_entrants": 2, "rdv_pris": 2, "rdv_effectues": 2}, {"date": "2026-01-28", "emails_sortants": 213, "appels": 36, "emails_entrants": 4, "rdv_pris": 1, "rdv_effectues": 1}, {"date": "2026-01-29", "emails_sortants": 36, "appels": 23, "emails_entrants": 4, "rdv_pris": 2, "rdv_effectues": 0}, {"date": "2026-01-30", "emails_sortants": 103, "appels": 24, "emails_entrants": 2, "rdv_pris": 1, "rdv_effectues": 5}, {"date": "2026-02-02", "emails_sortants": 97, "appels": 21, "emails_entrants": 4, "rdv_pris": 1, "rdv_effectues": 4}, {"date": "2026-02-03", "emails_sortants": 259, "appels": 30, "emails_entrants": 5, "rdv_pris": 2, "rdv_effectues": 2}, {"date": "2026-02-04", "emails_sortants": 41, "appels": 30, "emails_entrants": 7, "rdv_pris": 1, "rdv_effectues": 1}, {"date": "2026-02-05", "emails_sortants": 152, "appels": 26, "emails_entrants": 5, "rdv_pris": 0, "rdv_effectues": 8}, {"date": "2026-02-06", "emails_sortants": 3, "appels": 17, "emails_entrants": 6, "rdv_pris": 0, "rdv_effectues": 2}, {"date": "2026-02-09", "emails_sortants": 22, "appels": 41, "emails_entrants": 4, "rdv_pris": 4, "rdv_effectues": 2}, {"date": "2026-02-10", "emails_sortants": 5, "appels": 30, "emails_entrants": 195, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-02-11", "emails_sortants": 51, "appels": 30, "emails_entrants": 23, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-02-12", "emails_sortants": 93, "appels": 45, "emails_entrants": 9, "rdv_pris": 2, "rdv_effectues": 0}, {"date": "2026-02-13", "emails_sortants": 43, "appels": 15, "emails_entrants": 8, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-02-16", "emails_sortants": 92, "appels": 20, "emails_entrants": 8, "rdv_pris": 2, "rdv_effectues": 0}, {"date": "2026-02-17", "emails_sortants": 66, "appels": 42, "emails_entrants": 3, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-02-18", "emails_sortants": 175, "appels": 26, "emails_entrants": 11, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-02-19", "emails_sortants": 122, "appels": 18, "emails_entrants": 23, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-02-20", "emails_sortants": 33, "appels": 21, "emails_entrants": 2, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-02-23", "emails_sortants": 11, "appels": 21, "emails_entrants": 2, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-02-24", "emails_sortants": 112, "appels": 19, "emails_entrants": 1, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-02-25", "emails_sortants": 65, "appels": 29, "emails_entrants": 4, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-02-26", "emails_sortants": 118, "appels": 22, "emails_entrants": 7, "rdv_pris": 0, "rdv_effectues": 0}, {"date": "2026-02-27", "emails_sortants": 37, "appels": 21, "emails_entrants": 1, "rdv_pris": 0, "rdv_effectues": 1}, {"date": "2026-02-28", "emails_sortants": 0, "appels": 0, "emails_entrants": 1, "rdv_pris": 0, "rdv_effectues": 0}];
+const DAILY_REC = [{"date": "2026-01-05", "appels": 5, "emails_sortants": 0, "emails_entrants": 4, "qualifications": 4, "prequalifications": 1, "dossiers": 1, "entretiens": 0}, {"date": "2026-01-06", "appels": 9, "emails_sortants": 0, "emails_entrants": 5, "qualifications": 6, "prequalifications": 0, "dossiers": 3, "entretiens": 1}, {"date": "2026-01-07", "appels": 8, "emails_sortants": 0, "emails_entrants": 0, "qualifications": 7, "prequalifications": 0, "dossiers": 2, "entretiens": 0}, {"date": "2026-01-08", "appels": 54, "emails_sortants": 0, "emails_entrants": 2, "qualifications": 3, "prequalifications": 0, "dossiers": 3, "entretiens": 0}, {"date": "2026-01-09", "appels": 30, "emails_sortants": 0, "emails_entrants": 3, "qualifications": 3, "prequalifications": 0, "dossiers": 1, "entretiens": 0}, {"date": "2026-01-12", "appels": 0, "emails_sortants": 0, "emails_entrants": 1, "qualifications": 0, "prequalifications": 0, "dossiers": 0, "entretiens": 0}, {"date": "2026-01-13", "appels": 9, "emails_sortants": 5, "emails_entrants": 2, "qualifications": 6, "prequalifications": 0, "dossiers": 0, "entretiens": 0}, {"date": "2026-01-14", "appels": 10, "emails_sortants": 6, "emails_entrants": 4, "qualifications": 5, "prequalifications": 0, "dossiers": 2, "entretiens": 0}, {"date": "2026-01-15", "appels": 12, "emails_sortants": 6, "emails_entrants": 2, "qualifications": 7, "prequalifications": 0, "dossiers": 1, "entretiens": 0}, {"date": "2026-01-16", "appels": 6, "emails_sortants": 4, "emails_entrants": 0, "qualifications": 3, "prequalifications": 0, "dossiers": 0, "entretiens": 0}, {"date": "2026-01-19", "appels": 12, "emails_sortants": 16, "emails_entrants": 7, "qualifications": 5, "prequalifications": 0, "dossiers": 2, "entretiens": 0}, {"date": "2026-01-20", "appels": 28, "emails_sortants": 1, "emails_entrants": 6, "qualifications": 13, "prequalifications": 1, "dossiers": 5, "entretiens": 0}, {"date": "2026-01-21", "appels": 15, "emails_sortants": 5, "emails_entrants": 5, "qualifications": 15, "prequalifications": 0, "dossiers": 2, "entretiens": 0}, {"date": "2026-01-22", "appels": 21, "emails_sortants": 3, "emails_entrants": 1, "qualifications": 12, "prequalifications": 0, "dossiers": 3, "entretiens": 0}, {"date": "2026-01-23", "appels": 4, "emails_sortants": 2, "emails_entrants": 4, "qualifications": 8, "prequalifications": 0, "dossiers": 1, "entretiens": 1}, {"date": "2026-01-26", "appels": 48, "emails_sortants": 13, "emails_entrants": 6, "qualifications": 18, "prequalifications": 0, "dossiers": 3, "entretiens": 0}, {"date": "2026-01-27", "appels": 31, "emails_sortants": 17, "emails_entrants": 8, "qualifications": 13, "prequalifications": 2, "dossiers": 5, "entretiens": 0}, {"date": "2026-01-28", "appels": 41, "emails_sortants": 3, "emails_entrants": 11, "qualifications": 16, "prequalifications": 0, "dossiers": 3, "entretiens": 0}, {"date": "2026-01-29", "appels": 32, "emails_sortants": 11, "emails_entrants": 2, "qualifications": 12, "prequalifications": 1, "dossiers": 2, "entretiens": 0}, {"date": "2026-01-30", "appels": 45, "emails_sortants": 5, "emails_entrants": 7, "qualifications": 14, "prequalifications": 0, "dossiers": 2, "entretiens": 0}, {"date": "2026-02-02", "appels": 21, "emails_sortants": 5, "emails_entrants": 5, "qualifications": 15, "prequalifications": 0, "dossiers": 0, "entretiens": 0}, {"date": "2026-02-03", "appels": 15, "emails_sortants": 5, "emails_entrants": 3, "qualifications": 10, "prequalifications": 0, "dossiers": 6, "entretiens": 0}, {"date": "2026-02-04", "appels": 6, "emails_sortants": 7, "emails_entrants": 5, "qualifications": 6, "prequalifications": 0, "dossiers": 2, "entretiens": 0}, {"date": "2026-02-05", "appels": 13, "emails_sortants": 7, "emails_entrants": 2, "qualifications": 5, "prequalifications": 0, "dossiers": 3, "entretiens": 0}, {"date": "2026-02-06", "appels": 15, "emails_sortants": 13, "emails_entrants": 0, "qualifications": 9, "prequalifications": 0, "dossiers": 0, "entretiens": 0}, {"date": "2026-02-09", "appels": 17, "emails_sortants": 6, "emails_entrants": 4, "qualifications": 12, "prequalifications": 1, "dossiers": 4, "entretiens": 0}, {"date": "2026-02-10", "appels": 31, "emails_sortants": 11, "emails_entrants": 3, "qualifications": 17, "prequalifications": 4, "dossiers": 5, "entretiens": 0}, {"date": "2026-02-11", "appels": 16, "emails_sortants": 1, "emails_entrants": 3, "qualifications": 16, "prequalifications": 0, "dossiers": 6, "entretiens": 0}, {"date": "2026-02-12", "appels": 32, "emails_sortants": 8, "emails_entrants": 6, "qualifications": 14, "prequalifications": 0, "dossiers": 6, "entretiens": 3}, {"date": "2026-02-13", "appels": 28, "emails_sortants": 1, "emails_entrants": 3, "qualifications": 4, "prequalifications": 2, "dossiers": 6, "entretiens": 0}, {"date": "2026-02-16", "appels": 8, "emails_sortants": 7, "emails_entrants": 3, "qualifications": 4, "prequalifications": 3, "dossiers": 1, "entretiens": 0}, {"date": "2026-02-17", "appels": 23, "emails_sortants": 6, "emails_entrants": 3, "qualifications": 11, "prequalifications": 0, "dossiers": 1, "entretiens": 0}, {"date": "2026-02-18", "appels": 38, "emails_sortants": 17, "emails_entrants": 4, "qualifications": 14, "prequalifications": 1, "dossiers": 2, "entretiens": 0}, {"date": "2026-02-19", "appels": 32, "emails_sortants": 3, "emails_entrants": 7, "qualifications": 16, "prequalifications": 2, "dossiers": 7, "entretiens": 0}, {"date": "2026-02-20", "appels": 15, "emails_sortants": 1, "emails_entrants": 0, "qualifications": 11, "prequalifications": 1, "dossiers": 3, "entretiens": 0}, {"date": "2026-02-21", "appels": 0, "emails_sortants": 6, "emails_entrants": 0, "qualifications": 0, "prequalifications": 0, "dossiers": 0, "entretiens": 0}, {"date": "2026-02-23", "appels": 9, "emails_sortants": 7, "emails_entrants": 10, "qualifications": 2, "prequalifications": 0, "dossiers": 3, "entretiens": 0}, {"date": "2026-02-24", "appels": 41, "emails_sortants": 5, "emails_entrants": 2, "qualifications": 15, "prequalifications": 2, "dossiers": 3, "entretiens": 0}, {"date": "2026-02-25", "appels": 41, "emails_sortants": 4, "emails_entrants": 6, "qualifications": 13, "prequalifications": 3, "dossiers": 1, "entretiens": 0}, {"date": "2026-02-26", "appels": 31, "emails_sortants": 5, "emails_entrants": 2, "qualifications": 14, "prequalifications": 0, "dossiers": 3, "entretiens": 3}, {"date": "2026-02-27", "appels": 23, "emails_sortants": 6, "emails_entrants": 3, "qualifications": 14, "prequalifications": 3, "dossiers": 6, "entretiens": 0}];
+const TOP_COM  = [{"company": "Inconnu", "actions": 665}, {"company": "ADEO", "actions": 550}, {"company": "AG2R LA MONDIALE", "actions": 305}, {"company": "BNP Paribas CIB", "actions": 222}, {"company": "Worldline", "actions": 194}, {"company": "ENGIE", "actions": 191}, {"company": "BPCE FASTOR", "actions": 189}, {"company": "MAAF", "actions": 161}, {"company": "Covéa", "actions": 137}, {"company": "BPCE-IT", "actions": 125}, {"company": "BNP paribas BCEF", "actions": 118}, {"company": "AGIRC-ARRCO", "actions": 108}, {"company": "L'Oréal", "actions": 108}, {"company": "My Money Bank", "actions": 108}, {"company": "SUEZ", "actions": 98}, {"company": "LA BANQUE POSTALE", "actions": 97}, {"company": "MMA", "actions": 93}, {"company": "Abeille Assurances", "actions": 90}, {"company": "Groupe TF1", "actions": 88}, {"company": "CEVA Logistics", "actions": 88}];
+const TOP_REC  = [{"company": "VAITY Rakeche", "actions": 11}, {"company": "Mokhtari Oussama", "actions": 10}, {"company": "BENZEKRI Abdeslem", "actions": 9}, {"company": "BOBBINK ERIK", "actions": 9}, {"company": "BARBARIN CHARLOTTE", "actions": 8}, {"company": "DAVIGNON Thierry", "actions": 7}, {"company": "FIOUD Julien", "actions": 7}, {"company": "YONTA Osbert", "actions": 7}, {"company": "EL HANI Yassine", "actions": 7}, {"company": "PETIT Olivier", "actions": 7}, {"company": "CUISENIER Claire", "actions": 7}, {"company": "SAAD Abdelkrim", "actions": 7}, {"company": "SADIK Abdeljalil", "actions": 7}, {"company": "BAGUERRI Zakaria", "actions": 7}, {"company": "KHELIFI Hatem", "actions": 7}, {"company": "CHERIGUI Imed", "actions": 7}, {"company": "HOCQUET Guillaume", "actions": 7}, {"company": "FINDLAY Patrick", "actions": 6}, {"company": "Bouguila Abdelhak", "actions": 6}, {"company": "Bauche Corentin", "actions": 6}];
+
+const RANK_MEDALS = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+const PALETTE = ['#2563eb','#f59e0b','#10b981','#8b5cf6','#ef4444','#0891b2','#db2777','#ea580c'];
+let charts = {};
+let comSort = {col:-1, asc:true};
+let recSort = {col:-1, asc:true};
+
+// ═══════════════════════════════════
+//  TABS
+// ═══════════════════════════════════
+function switchTab(tab) {
+  document.getElementById('panelCom').classList.toggle('active', tab==='com');
+  document.getElementById('panelRec').classList.toggle('active', tab==='rec');
+  document.getElementById('tabCom').className = 'tab-btn' + (tab==='com' ? ' active-com' : '');
+  document.getElementById('tabRec').className = 'tab-btn' + (tab==='rec' ? ' active-rec' : '');
+  if (tab==='com') refreshCom();
+  else refreshRec();
+}
+
+// ═══════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════
+function shortName(n) {
+  const parts = n.split(' ');
+  // Try first name + last initial
+  if (parts.length >= 2) {
+    const last = parts.find(p => p === p.toUpperCase() && p.length > 1) || parts[0];
+    const first = parts.find(p => p !== last) || parts[1];
+    return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() + ' ' + last[0] + '.';
+  }
+  return n;
+}
+function fmt(n) { return n.toLocaleString('fr-FR'); }
+function fmtMonth(m) { return m === '2026-01' ? 'Janvier' : m === '2026-02' ? 'Février' : m; }
+function destroyChart(id) {
+  // Properly destroy via charts registry
+  if (charts[id]) { try { charts[id].destroy(); } catch(e){} delete charts[id]; }
+  // Also destroy any lingering Chart.js instance on the canvas (avoids "canvas already in use")
+  const canvas = document.getElementById(id);
+  if (canvas) { const existing = Chart.getChart(canvas); if (existing) { try { existing.destroy(); } catch(e){} } }
+}
+
+function aggByPerson(rows, fields) {
+  const out = {};
+  for (const r of rows) {
+    if (!out[r.responsable]) { out[r.responsable] = {total:0}; fields.forEach(f => out[r.responsable][f]=0); }
+    out[r.responsable].total += r.total;
+    fields.forEach(f => out[r.responsable][f] += (r[f]||0));
+  }
+  return out;
+}
+
+function aggTotals(rows, fields) {
+  const out = {total:0};
+  fields.forEach(f => out[f]=0);
+  for (const r of rows) { out.total += r.total; fields.forEach(f => out[f]+=(r[f]||0)); }
+  return out;
+}
+
+function filterPM(data, month, person) {
+  return data.filter(r => (!month || r.month===month) && (!person || r.responsable===person));
+}
+
+function filterCompanies(list, search) {
+  let res = list;
+  if (search) res = res.filter(c => c.company.toLowerCase().includes(search.toLowerCase()));
+  return res.slice(0, 12);
+}
+
+// ═══════════════════════════════════
+//  PODIUM
+// ═══════════════════════════════════
+function renderPodium(containerId, byPerson, colorClass, subtitle) {
+  const sorted = Object.entries(byPerson).sort((a,b) => b[1].total - a[1].total);
+  document.getElementById(containerId).innerHTML = sorted.map(([name, stats], i) => {
+    const rank = i < 3 ? `rank-${i+1}` : `rank-${i+1}`;
+    const medal = RANK_MEDALS[i] || (i+1)+'';
+    return `<div class="podium-card ${rank}">
+      <div class="podium-rank">${medal}</div>
+      <div class="podium-name">${shortName(name)}</div>
+      <div class="podium-total">${fmt(stats.total)}</div>
+      <div class="podium-sub">${subtitle}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════
+//  FUNNEL
+// ═══════════════════════════════════
+function renderFunnel(containerId, totals) {
+  const steps = [
+    { label:'Emails sortants', val:totals.emails_sortants, color:'#2563eb' },
+    { label:'Appels', val:totals.appels, color:'#f59e0b' },
+    { label:'Emails entrants', val:totals.emails_entrants, color:'#0891b2' },
+    { label:'RDV pris', val:totals.rdv_pris||0, color:'#8b5cf6' },
+    { label:'RDV effectués', val:totals.rdv_effectues||0, color:'#10b981' },
+  ];
+  const max = steps[0].val || 1;
+  const html = steps.map(s => {
+    const pct = Math.max((s.val/max*100), 0);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+      <div style="font-size:11px;color:var(--muted);width:110px;text-align:right;flex-shrink:0;">${s.label}</div>
+      <div style="flex:1;background:#f1f5f9;border-radius:4px;height:26px;overflow:hidden;">
+        <div style="width:${pct}%;background:${s.color};height:100%;display:flex;align-items:center;padding-left:8px;color:#fff;font-weight:700;font-size:11px;min-width:${s.val>0?'30px':'0'};">${fmt(s.val)}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);width:38px;text-align:right;">${pct.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ═══════════════════════════════════
+//  COMMERCIAL
+// ═══════════════════════════════════
+const COM_FIELDS = ['emails_sortants','appels','emails_entrants','rdv_pris','rdv_effectues'];
+
+function refreshCom() {
+  try {
+    const month = document.getElementById('comMonth').value;
+    const person = document.getElementById('comPerson').value;
+    const search = document.getElementById('comSearch').value;
+    const rows = filterPM(PM_COM, month, person);
+    const byPerson = aggByPerson(rows, COM_FIELDS);
+    const totals = aggTotals(rows, COM_FIELDS);
+    const daily = DAILY_COM.filter(r => !month || r.date.startsWith(month));
+    const companies = filterCompanies(TOP_COM, search);
+
+    renderPodium('comPodium', byPerson, 'c1', 'actions totales');
+    renderComKpis(totals, Object.keys(byPerson).length || 1);
+    renderFunnel('comFunnel', totals);
+    try { renderDailyChart('comDailyChart', daily, ['#2563eb','#f59e0b','#0891b2'], ['emails_sortants','appels','emails_entrants'], ['Emails sortants','Appels','Emails entrants']); } catch(e){ console.error('comDailyChart', e); }
+    try { renderPersonBarChart('comPersonChart', byPerson, [
+      {key:'emails_sortants',color:'rgba(37,99,235,.75)',label:'Emails sortants'},
+      {key:'appels',color:'rgba(245,158,11,.8)',label:'Appels'},
+      {key:'rdv_effectues',color:'rgba(16,185,129,.8)',label:'RDV effectués'},
+    ]); } catch(e){ console.error('comPersonChart', e); }
+    try { renderCompChart('comCompChart', companies, '#2563eb'); } catch(e){ console.error('comCompChart', e); }
+    renderComTable(rows);
+  } catch(e) { console.error('refreshCom error:', e); }
+}
+
+function renderComKpis(t, nP) {
+  const items = [
+    {label:'Total actions', val:fmt(t.total), sub:`${fmt(Math.round(t.total/nP))} / pers.`, cls:'c1'},
+    {label:'Emails sortants', val:fmt(t.emails_sortants), sub:`${fmt(Math.round(t.emails_sortants/nP))} / pers.`, cls:'c2'},
+    {label:'Appels', val:fmt(t.appels), sub:`${fmt(Math.round(t.appels/nP))} / pers.`, cls:'c3'},
+    {label:'Emails entrants', val:fmt(t.emails_entrants), sub:`Taux réponse: ${t.emails_sortants>0?(t.emails_entrants/t.emails_sortants*100).toFixed(1)+'%':'—'}`, cls:'c4'},
+    {label:'RDV pris', val:fmt(t.rdv_pris||0), sub:`${((t.rdv_pris||0)/nP).toFixed(1)} / pers.`, cls:'c5'},
+    {label:'RDV effectués', val:fmt(t.rdv_effectues||0), sub:`Taux: ${(t.emails_sortants+t.appels)>0?((t.rdv_effectues||0)/(t.emails_sortants+t.appels)*100).toFixed(2)+'%':'—'}`, cls:'c6'},
+  ];
+  document.getElementById('comKpis').innerHTML = items.map(i =>
+    `<div class="kpi ${i.cls}"><div class="kpi-label">${i.label}</div><div class="kpi-val">${i.val}</div><div class="kpi-sub">${i.sub}</div></div>`
+  ).join('');
+}
+
+function renderComTable(rows) {
+  const cols = ['responsable','month','total','emails_sortants','appels','emails_entrants','rdv_pris','rdv_effectues'];
+  let data = [...rows];
+  if (comSort.col >= 0) {
+    data.sort((a,b) => {
+      let va = a[cols[comSort.col]], vb = b[cols[comSort.col]];
+      if (typeof va === 'string') return comSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return comSort.asc ? va-vb : vb-va;
+    });
+  }
+  const maxTotal = Math.max(...data.map(r=>r.total), 1);
+  document.getElementById('comTbody').innerHTML = data.map(r => {
+    const pct = r.total/maxTotal*100;
+    return `<tr>
+      <td><strong>${shortName(r.responsable)}</strong></td>
+      <td>${fmtMonth(r.month)}</td>
+      <td><strong>${fmt(r.total)}</strong>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%;background:#2563eb;"></div></div>
+      </td>
+      <td>${fmt(r.emails_sortants)}</td>
+      <td>${fmt(r.appels)}</td>
+      <td>${fmt(r.emails_entrants)}</td>
+      <td>${r.rdv_pris||0}</td>
+      <td>${r.rdv_effectues||0}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;font-style:italic;">Aucun résultat</td></tr>';
+}
+
+function sortComTable(col) {
+  comSort.asc = comSort.col === col ? !comSort.asc : true;
+  comSort.col = col;
+  document.querySelectorAll('#comTable th .sort-icon').forEach((el,i) => {
+    el.textContent = i===col ? (comSort.asc?'↑':'↓') : '↕';
+    el.style.opacity = i===col ? '1' : '.4';
+  });
+  const month = document.getElementById('comMonth').value;
+  const person = document.getElementById('comPerson').value;
+  renderComTable(filterPM(PM_COM, month, person));
+}
+
+// ═══════════════════════════════════
+//  RECRUTEMENT
+// ═══════════════════════════════════
+const REC_FIELDS = ['appels','emails_sortants','emails_entrants','qualifications','prequalifications','dossiers','entretiens'];
+
+function refreshRec() {
+  try {
+    const month = document.getElementById('recMonth').value;
+    const person = document.getElementById('recPerson').value;
+    const search = document.getElementById('recSearch').value;
+    const rows = filterPM(PM_REC, month, person);
+    const byPerson = aggByPerson(rows, REC_FIELDS);
+    const totals = aggTotals(rows, REC_FIELDS);
+    const daily = DAILY_REC.filter(r => !month || r.date.startsWith(month));
+    const companies = filterCompanies(TOP_REC, search);
+
+    renderPodium('recPodium', byPerson, 'r1', 'actions totales');
+    renderRecKpis(totals, Object.keys(byPerson).length || 1);
+    try { renderDailyChart('recDailyChart', daily, ['#db2777','#ea580c','#0d9488'], ['appels','emails_sortants','qualifications'], ['Appels','Emails sortants','Qualifications']); } catch(e){ console.error('recDailyChart', e); }
+    try { renderRecDonut(totals); } catch(e){ console.error('recDonut', e); }
+    try { renderPersonBarChart('recPersonChart', byPerson, [
+      {key:'appels',color:'rgba(219,39,119,.75)',label:'Appels'},
+      {key:'qualifications',color:'rgba(13,148,136,.8)',label:'Qualifications'},
+      {key:'dossiers',color:'rgba(124,58,237,.8)',label:'Dossiers'},
+      {key:'entretiens',color:'rgba(22,163,74,.8)',label:'Entretiens'},
+    ]); } catch(e){ console.error('recPersonChart', e); }
+    try { renderCompChart('recCompChart', companies, '#db2777'); } catch(e){ console.error('recCompChart', e); }
+    renderRecTable(rows);
+  } catch(e) { console.error('refreshRec error:', e); }
+}
+
+function renderRecKpis(t, nP) {
+  const items = [
+    {label:'Total actions', val:fmt(t.total), sub:`${fmt(Math.round(t.total/nP))} / pers.`, cls:'r1'},
+    {label:'Appels', val:fmt(t.appels), sub:`${fmt(Math.round(t.appels/nP))} / pers.`, cls:'r2'},
+    {label:'Emails sortants', val:fmt(t.emails_sortants), sub:`${fmt(Math.round(t.emails_sortants/nP))} / pers.`, cls:'r3'},
+    {label:'Qualifications', val:fmt(t.qualifications), sub:`${fmt(Math.round(t.qualifications/nP))} / pers.`, cls:'r4'},
+    {label:'Dossiers envoyés', val:fmt(t.dossiers), sub:`${((t.qualifications>0?t.dossiers/t.qualifications*100:0)).toFixed(1)}% des qualifs`, cls:'r5'},
+    {label:'Entretiens', val:fmt(t.entretiens), sub:`${((t.qualifications>0?t.entretiens/t.qualifications*100:0)).toFixed(1)}% des qualifs`, cls:'r6'},
+    {label:'Préqualifications', val:fmt(t.prequalifications), sub:`${fmt(Math.round(t.prequalifications/nP))} / pers.`, cls:'r7'},
+  ];
+  document.getElementById('recKpis').innerHTML = items.map(i =>
+    `<div class="kpi ${i.cls}"><div class="kpi-label">${i.label}</div><div class="kpi-val">${i.val}</div><div class="kpi-sub">${i.sub}</div></div>`
+  ).join('');
+}
+
+function renderRecDonut(totals) {
+  destroyChart('recDonut');
+  const labels = ['Appels','Emails sortants','Emails entrants','Qualifications','Préqualifs','Dossiers','Entretiens'];
+  const values = [totals.appels,totals.emails_sortants,totals.emails_entrants,totals.qualifications,totals.prequalifications,totals.dossiers,totals.entretiens];
+  const colors = ['#db2777','#ea580c','#0d9488','#7c3aed','#16a34a','#0369a1','#b45309'];
+  charts['recDonut'] = new Chart(document.getElementById('recDonutChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 10, padding: 8 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)} (${(ctx.raw/(ctx.dataset.data.reduce((a,b)=>a+b,0)||1)*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+}
+
+function renderRecTable(rows) {
+  const cols = ['responsable','month','total','appels','emails_sortants','emails_entrants','qualifications','prequalifications','dossiers','entretiens'];
+  let data = [...rows];
+  if (recSort.col >= 0) {
+    data.sort((a,b) => {
+      let va = a[cols[recSort.col]], vb = b[cols[recSort.col]];
+      if (typeof va === 'string') return recSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return recSort.asc ? va-vb : vb-va;
+    });
+  }
+  const maxTotal = Math.max(...data.map(r=>r.total), 1);
+  document.getElementById('recTbody').innerHTML = data.map(r => `<tr>
+    <td><strong>${shortName(r.responsable)}</strong></td>
+    <td>${fmtMonth(r.month)}</td>
+    <td><strong>${fmt(r.total)}</strong>
+      <div class="mini-bar"><div class="mini-bar-fill" style="width:${r.total/maxTotal*100}%;background:#db2777;"></div></div>
+    </td>
+    <td>${fmt(r.appels)}</td>
+    <td>${fmt(r.emails_sortants)}</td>
+    <td>${fmt(r.emails_entrants||0)}</td>
+    <td>${fmt(r.qualifications)}</td>
+    <td>${fmt(r.prequalifications||0)}</td>
+    <td>${fmt(r.dossiers)}</td>
+    <td>${fmt(r.entretiens||0)}</td>
+  </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;font-style:italic;">Aucun résultat</td></tr>';
+}
+
+function sortRecTable(col) {
+  recSort.asc = recSort.col === col ? !recSort.asc : true;
+  recSort.col = col;
+  document.querySelectorAll('#recTable th .sort-icon').forEach((el,i) => {
+    el.textContent = i===col ? (recSort.asc?'↑':'↓') : '↕';
+    el.style.opacity = i===col ? '1' : '.4';
+  });
+  const month = document.getElementById('recMonth').value;
+  const person = document.getElementById('recPerson').value;
+  renderRecTable(filterPM(PM_REC, month, person));
+}
+
+// ═══════════════════════════════════
+//  SHARED CHARTS
+// ═══════════════════════════════════
+function renderDailyChart(canvasId, daily, colors, keys, labels) {
+  destroyChart(canvasId);
+  const xLabels = daily.map(d => {
+    const dt = new Date(d.date);
+    return dt.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
+  });
+  const datasets = keys.map((k, i) => ({
+    label: labels[i],
+    data: daily.map(d => d[k] || 0),
+    backgroundColor: colors[i] + (i===0?'cc':'99'),
+    borderColor: colors[i],
+    borderWidth: i===2 ? 2 : 1,
+    borderRadius: 3,
+    type: i===2 ? 'line' : 'bar',
+    tension: .3, fill: false, pointRadius: 2,
+  }));
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: { labels: xLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'top', labels:{ font:{size:10}, boxWidth:10, padding:8 } }, tooltip:{ mode:'index', intersect:false } },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:9}, maxRotation:45} },
+        y: { beginAtZero:true, grid:{color:'#f1f5f9'}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
+
+function renderPersonBarChart(canvasId, byPerson, datasets) {
+  destroyChart(canvasId);
+  const persons = Object.keys(byPerson);
+  const sName = p => shortName(p);
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: persons.map(sName),
+      datasets: datasets.map(ds => ({
+        label: ds.label,
+        data: persons.map(p => byPerson[p][ds.key] || 0),
+        backgroundColor: ds.color,
+        borderRadius: 4,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{ position:'top', labels:{font:{size:10}, boxWidth:10, padding:8} } },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:10}} },
+        y: { beginAtZero:true, grid:{color:'#f1f5f9'}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
+
+function renderCompChart(canvasId, companies, baseColor) {
+  destroyChart(canvasId);
+  const shades = ['#1d4ed8','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe',
+                  '#f59e0b','#fbbf24','#fcd34d','#10b981','#34d399','#8b5cf6'];
+  charts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'bar',
+    data: {
+      labels: companies.map(c => c.company.length>18 ? c.company.slice(0,17)+'…' : c.company),
+      datasets: [{
+        data: companies.map(c => c.actions),
+        backgroundColor: shades.slice(0, companies.length),
+        borderRadius: 4, borderWidth: 0,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${fmt(ctx.raw)} actions` } } },
+      scales: {
+        x: { grid:{color:'#f1f5f9'}, ticks:{font:{size:9}} },
+        y: { grid:{display:false}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  refreshCom();
+});
+</script>
+</body>
+</html>
