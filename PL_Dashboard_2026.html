@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Suivi P&L 2026</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#1a1f36;min-height:100vh}
+
+    /* HEADER */
+    header{background:linear-gradient(135deg,#1a237e 0%,#283593 55%,#3949ab 100%);padding:22px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;box-shadow:0 3px 14px rgba(0,0,0,.28)}
+    .hd-title h1{font-size:1.38rem;font-weight:800;color:#fff;letter-spacing:.2px}
+    .hd-title p{font-size:.78rem;color:rgba(255,255,255,.6);margin-top:3px}
+
+    /* FILTERS */
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+    .fg{display:flex;flex-direction:column;gap:4px}
+    .fg label{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px}
+    .fg select{border-radius:8px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.13);color:#fff;font-size:.83rem;padding:7px 12px;outline:none;cursor:pointer;transition:background .2s}
+    .fg select:hover{background:rgba(255,255,255,.22)}
+    .fg select option{color:#1a1f36;background:#fff}
+    .btn-grp{display:flex}
+    .btn-t{padding:7px 15px;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:rgba(255,255,255,.65);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;border-right:none}
+    .btn-t:first-child{border-radius:8px 0 0 8px}
+    .btn-t:last-child{border-radius:0 8px 8px 0;border-right:1.5px solid rgba(255,255,255,.25)}
+    .btn-t.active{background:#fff;color:#1a237e}
+
+    /* LAYOUT */
+    main{padding:26px 32px;max-width:1380px;margin:0 auto}
+    .sec-lbl{font-size:.68rem;font-weight:800;color:#9ca3af;text-transform:uppercase;letter-spacing:1.1px;margin:24px 0 10px}
+    .sec-lbl:first-of-type{margin-top:0}
+
+    /* KPI GRID */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+    .kpi{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);border-top:4px solid #e8eaf6;position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+    .kpi:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.1)}
+    .kpi.ca{border-top-color:#3949ab}
+    .kpi.chg{border-top-color:#e53935}
+    .kpi.mb{border-top-color:#43a047}
+    .kpi.mn{border-top-color:#fb8c00}
+    .kpi-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:9px}
+    .ca .kpi-ico{background:#e8eaf6} .chg .kpi-ico{background:#ffebee}
+    .mb .kpi-ico{background:#e8f5e9} .mn .kpi-ico{background:#fff3e0}
+    .kpi-lbl{font-size:.69rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+    .kpi-val{font-size:1.5rem;font-weight:800;color:#1a1f36;line-height:1;margin-bottom:6px}
+    .kpi-sub{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .kpi-sc{font-size:.71rem;color:#6b7280}
+    .badge{font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:20px}
+    .bp{background:#e8f5e9;color:#2e7d32} .bn{background:#ffebee;color:#c62828} .b0{background:#f3f4f6;color:#6b7280}
+    .rate-badge{position:absolute;top:13px;right:14px;font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:20px}
+    .rp{background:#e8f5e9;color:#2e7d32} .rn{background:#ffebee;color:#c62828}
+
+    /* MONTH TABS */
+    .month-pills{display:flex;gap:8px;margin-bottom:14px}
+    .mpill{padding:5px 16px;border-radius:20px;font-size:.78rem;font-weight:600;cursor:pointer;border:2px solid #e5e7eb;color:#6b7280;background:#fff;transition:all .2s}
+    .mpill.active{background:#1a237e;color:#fff;border-color:#1a237e}
+
+    /* CHARTS */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media(max-width:860px){.charts-grid{grid-template-columns:1fr}}
+    .chart-card{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05)}
+    .cc-title{font-size:.85rem;font-weight:700;color:#374151;margin-bottom:2px}
+    .cc-sub{font-size:.7rem;color:#9ca3af;margin-bottom:10px}
+    .legend{display:flex;gap:14px;margin-bottom:10px}
+    .li{display:flex;align-items:center;gap:5px;font-size:.72rem;color:#6b7280}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .chart-wrap{position:relative;height:220px}
+
+    /* MARGIN BARS */
+    .mcard{background:#fff;border-radius:14px;padding:22px 24px;box-shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05)}
+    .mcard-title{font-size:.85rem;font-weight:700;color:#374151;margin-bottom:18px}
+    .m-section{margin-bottom:20px}
+    .m-section:last-child{margin-bottom:0}
+    .m-month-label{font-size:.78rem;font-weight:800;color:#1a237e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e8eaf6}
+    .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+    .bar-row:last-child{margin-bottom:0}
+    .bar-lbl{font-size:.68rem;color:#9ca3af;min-width:58px;text-align:right;font-weight:500}
+    .bar-track{flex:1;background:#f3f4f6;border-radius:6px;height:13px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+    .bf-rea{background:linear-gradient(90deg,#3949ab,#5c6bc0)}
+    .bf-opt{background:linear-gradient(90deg,#43a047,#66bb6a)}
+    .bf-neg{background:linear-gradient(90deg,#e53935,#ef5350)}
+    .bar-val{font-size:.71rem;font-weight:700;min-width:52px;color:#374151;white-space:nowrap}
+    .pct-tag{font-weight:400;color:#9ca3af}
+    .neg-val{color:#c62828}
+
+    /* SEPARATOR */
+    .sep{border:none;border-top:1px solid #f3f4f6;margin:14px 0}
+
+    footer{text-align:center;padding:18px;font-size:.7rem;color:#9ca3af}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hd-title">
+    <h1>📊 Suivi P&L 2026</h1>
+    <p>Réalisé vs Optimiste · Janvier – Février</p>
+  </div>
+  <div class="filters">
+    <div class="fg">
+      <label>Mois</label>
+      <select id="selMois" onchange="render()">
+        <option value="both">Janvier + Février</option>
+        <option value="jan">Janvier uniquement</option>
+        <option value="feb">Février uniquement</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Vue</label>
+      <div class="btn-grp">
+        <button class="btn-t active" id="bCA"      onclick="setView('ca')">CA</button>
+        <button class="btn-t"        id="bCharges" onclick="setView('charges')">Charges</button>
+        <button class="btn-t"        id="bMarges"  onclick="setView('marges')">Marges</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="sec-lbl">Indicateurs clés · <span id="lbl-scenario">Réalisé vs Optimiste</span></div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="sec-lbl">Comparaison visuelle</div>
+  <div class="charts-grid" id="chartsGrid"></div>
+
+  <div class="sec-lbl">Détail des taux de marge</div>
+  <div id="marginSection"></div>
+</main>
+
+<footer>Source : onglet P&L · Suivi P&L 2026.xlsx</footer>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const D = {
+  jan: {
+    ca:    { rea: 707547.41, opt: 732085.74 },
+    cprod: { rea: 617110.40, opt: 506340.99 },
+    cfonc: { rea: 106652.49, opt: 107693.87 },
+    mb:    { rea: 90437.01,  opt: 225744.75,
+             txRea: 0.1278,  txOpt: 225744.75/732085.74 },
+    mn:    { rea: -16215.48, opt: 118050.88,
+             txRea: -16215.48/707547.41, txOpt: 118050.88/732085.74 },
+  },
+  feb: {
+    ca:    { rea: 704905.34, opt: 773125.74 },
+    cprod: { rea: 598723.70, opt: 556904.14 },
+    cfonc: { rea: 133025.74, opt: 139549.04 },
+    mb:    { rea: 106181.64, opt: 216221.60,
+             txRea: 0.15063, txOpt: 216221.60/773125.74 },
+    mn:    { rea: -26844.10, opt: 76672.56,
+             txRea: -26844.10/704905.34, txOpt: 76672.56/773125.74 },
+  },
+};
+const MN = { jan:'Janvier', feb:'Février' };
+
+let view = 'ca';
+let charts = {};
+
+// ── FORMAT ───────────────────────────────────────────────────────────────────
+function fmt(v) {
+  if(v==null) return '—';
+  const abs=Math.abs(v);
+  let s = abs>=1e6 ? (v/1e6).toFixed(2)+' M€'
+        : abs>=1000 ? (v/1000).toFixed(1)+' k€'
+        : v.toFixed(0)+' €';
+  return v<0 ? '−'+s.replace('-','') : s;
+}
+function pct(v,d=1){ return (v*100).toFixed(d)+'%'; }
+function dlt(rea,opt){
+  if(!opt) return null;
+  return (rea-opt)/Math.abs(opt);
+}
+function dLabel(d){ if(d==null)return ''; return (d>=0?'+':'')+pct(d); }
+function dClass(d,inv=false){
+  if(d==null) return 'b0';
+  return (inv ? d<=0 : d>=0) ? 'bp' : 'bn';
+}
+
+function months(){
+  const v=document.getElementById('selMois').value;
+  return v==='jan'?['jan']:v==='feb'?['feb']:['jan','feb'];
+}
+function agg(ms,key,sub){ return ms.reduce((s,m)=>s+D[m][key][sub],0); }
+
+// ── VIEW TOGGLE ───────────────────────────────────────────────────────────────
+function setView(v){
+  view=v;
+  document.querySelectorAll('.btn-t').forEach(b=>b.classList.remove('active'));
+  document.getElementById(v==='ca'?'bCA':v==='charges'?'bCharges':'bMarges').classList.add('active');
+  render();
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+function renderKPIs(ms){
+  const caR=agg(ms,'ca','rea'),  caO=agg(ms,'ca','opt');
+  const cpR=agg(ms,'cprod','rea'),cpO=agg(ms,'cprod','opt');
+  const cfR=agg(ms,'cfonc','rea'),cfO=agg(ms,'cfonc','opt');
+  const mbR=agg(ms,'mb','rea'),   mbO=agg(ms,'mb','opt');
+  const mnR=agg(ms,'mn','rea'),   mnO=agg(ms,'mn','opt');
+  const txMbR=mbR/caR, txMbO=mbO/caO;
+  const txMnR=mnR/caR, txMnO=mnO/caO;
+
+  const defs = view==='ca' ? [
+    {cls:'ca',  ico:'💰', lbl:"Chiffre d'affaires", rea:caR, opt:caO, inv:false},
+    {cls:'chg', ico:'📦', lbl:'Charges production',  rea:cpR, opt:cpO, inv:true},
+    {cls:'mb',  ico:'📈', lbl:'Marge brute',          rea:mbR, opt:mbO, tx:txMbR, txO:txMbO, inv:false},
+    {cls:'mn',  ico:'🎯', lbl:'Marge nette',           rea:mnR, opt:mnO, tx:txMnR, txO:txMnO, inv:false},
+  ] : view==='charges' ? [
+    {cls:'chg', ico:'📦', lbl:'Charges production',      rea:cpR, opt:cpO, inv:true},
+    {cls:'chg', ico:'🏢', lbl:'Charges fonctionnement',  rea:cfR, opt:cfO, inv:true},
+    {cls:'ca',  ico:'💰', lbl:"CA Réalisé",               rea:caR, opt:caO, inv:false},
+    {cls:'mb',  ico:'📈', lbl:'Marge brute',               rea:mbR, opt:mbO, tx:txMbR, txO:txMbO, inv:false},
+  ] : [
+    {cls:'mb', ico:'📈', lbl:'Marge brute',  rea:mbR, opt:mbO, tx:txMbR, txO:txMbO, inv:false},
+    {cls:'mn', ico:'🎯', lbl:'Marge nette',   rea:mnR, opt:mnO, tx:txMnR, txO:txMnO, inv:false},
+    {cls:'ca', ico:'💰', lbl:"CA Réalisé",    rea:caR, opt:caO, inv:false},
+    {cls:'chg',ico:'📦', lbl:'Charges totales',rea:cpR+cfR,opt:cpO+cfO,inv:true},
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = defs.map(c=>{
+    const d=dlt(c.rea,c.opt);
+    const rateHtml = c.tx!=null
+      ? `<span class="rate-badge ${c.tx>=0?'rp':'rn'}">${pct(c.tx)}</span>` : '';
+    return `<div class="kpi ${c.cls}">
+      ${rateHtml}
+      <div class="kpi-ico">${c.ico}</div>
+      <div class="kpi-lbl">${c.lbl}</div>
+      <div class="kpi-val">${fmt(c.rea)}</div>
+      <div class="kpi-sub">
+        <span class="kpi-sc">Optimiste : ${fmt(c.opt)}</span>
+        ${d!=null?`<span class="badge ${dClass(d,c.inv)}">${dLabel(d)}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CHARTS ───────────────────────────────────────────────────────────────────
+function destroyCharts(){ Object.values(charts).forEach(c=>c.destroy()); charts={}; }
+
+function makeChart(id,type,labels,ds,isMoney){
+  const ctx=document.getElementById(id).getContext('2d');
+  const isLine=type==='line';
+  charts[id]=new Chart(ctx,{
+    type:isLine?'line':'bar',
+    data:{labels,datasets:ds.map(d=>({
+      label:d.label, data:d.data,
+      backgroundColor:d.color+(isLine?'':'bb'),
+      borderColor:d.color,
+      borderWidth:isLine?2.5:0,
+      borderRadius:isLine?0:7,
+      tension:.35, fill:false,
+      pointRadius:isLine?5:0,
+      pointBackgroundColor:d.color,
+    }))},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          label:c=>{
+            const v=c.parsed.y;
+            return ` ${c.dataset.label}: ${isMoney?fmt(v):pct(v/100)}`;
+          }
+        }}
+      },
+      scales:{
+        y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10.5},
+            callback:v=>isMoney?(Math.abs(v)>=1000?(v/1000).toFixed(0)+'k':v):(v+'%')}},
+        x:{grid:{display:false},ticks:{font:{size:11.5,weight:'600'}}}
+      }
+    }
+  });
+}
+
+function renderCharts(ms){
+  destroyCharts();
+  const labels=ms.map(m=>MN[m]);
+  const caR=ms.map(m=>D[m].ca.rea), caO=ms.map(m=>D[m].ca.opt);
+  const cpR=ms.map(m=>D[m].cprod.rea),cpO=ms.map(m=>D[m].cprod.opt);
+  const cfR=ms.map(m=>D[m].cfonc.rea),cfO=ms.map(m=>D[m].cfonc.opt);
+  const mbR=ms.map(m=>D[m].mb.rea),   mbO=ms.map(m=>D[m].mb.opt);
+  const mnR=ms.map(m=>D[m].mn.rea),   mnO=ms.map(m=>D[m].mn.opt);
+  const txMbR=ms.map(m=>+(D[m].mb.txRea*100).toFixed(2));
+  const txMbO=ms.map(m=>+(D[m].mb.txOpt*100).toFixed(2));
+  const txMnR=ms.map(m=>+(D[m].mn.txRea*100).toFixed(2));
+  const txMnO=ms.map(m=>+(D[m].mn.txOpt*100).toFixed(2));
+
+  const cdefs = view==='ca' ? [
+    { id:'c1', title:"Chiffre d'affaires", sub:'Réalisé vs Optimiste (€)', isMoney:true,
+      ds:[{label:'Réalisé',data:caR,color:'#3949ab'},{label:'Optimiste',data:caO,color:'#43a047'}]},
+    { id:'c2', title:'Marge brute', sub:'Réalisé vs Optimiste (€)', isMoney:true,
+      ds:[{label:'Réalisé',data:mbR,color:'#3949ab'},{label:'Optimiste',data:mbO,color:'#43a047'}]},
+  ] : view==='charges' ? [
+    { id:'c1', title:'Charges de production', sub:'Réalisé vs Optimiste (€)', isMoney:true,
+      ds:[{label:'Réalisé',data:cpR,color:'#e53935'},{label:'Optimiste',data:cpO,color:'#ef9a9a'}]},
+    { id:'c2', title:'Charges de fonctionnement', sub:'Réalisé vs Optimiste (€)', isMoney:true,
+      ds:[{label:'Réalisé',data:cfR,color:'#e53935'},{label:'Optimiste',data:cfO,color:'#ef9a9a'}]},
+  ] : [
+    { id:'c1', title:'Taux marge brute (%)', sub:'Réalisé vs Optimiste', isMoney:false, type:'line',
+      ds:[{label:'Réalisé',data:txMbR,color:'#3949ab'},{label:'Optimiste',data:txMbO,color:'#43a047'}]},
+    { id:'c2', title:'Taux marge nette (%)', sub:'Réalisé vs Optimiste', isMoney:false, type:'line',
+      ds:[{label:'Réalisé',data:txMnR,color:'#fb8c00'},{label:'Optimiste',data:txMnO,color:'#43a047'}]},
+  ];
+
+  document.getElementById('chartsGrid').innerHTML = cdefs.map(c=>`
+    <div class="chart-card">
+      <div class="cc-title">${c.title}</div>
+      <div class="cc-sub">${c.sub}</div>
+      <div class="legend">
+        ${c.ds.map(d=>`<span class="li"><span class="dot" style="background:${d.color}"></span>${d.label}</span>`).join('')}
+      </div>
+      <div class="chart-wrap"><canvas id="${c.id}"></canvas></div>
+    </div>`).join('');
+
+  cdefs.forEach(c=>makeChart(c.id,c.type||'bar',labels,c.ds,c.isMoney));
+}
+
+// ── MARGIN BARS ───────────────────────────────────────────────────────────────
+function barHtml(val, fill, maxPct, isNeg){
+  const w = Math.min(Math.abs(val/maxPct)*100,100).toFixed(1)+'%';
+  const neg = val<0||isNeg;
+  return `<div class="bar-track"><div class="bar-fill ${neg?'bf-neg':fill}" style="width:${w}"></div></div>`;
+}
+
+function renderMargins(ms){
+  // max absolute value across all for scaling
+  const vals=ms.flatMap(m=>[
+    Math.abs(D[m].mb.txRea),Math.abs(D[m].mb.txOpt),
+    Math.abs(D[m].mn.txRea),Math.abs(D[m].mn.txOpt)
+  ]);
+  const maxVal=Math.max(...vals)*1.1||0.5;
+
+  const html = ms.map(m=>{
+    const d=D[m];
+    const rows=[
+      {lbl:'MB Réalisé', val:d.mb.rea, tx:d.mb.txRea, fill:'bf-rea'},
+      {lbl:'MB Optimiste',val:d.mb.opt,tx:d.mb.txOpt, fill:'bf-opt'},
+      {lbl:'MN Réalisé', val:d.mn.rea, tx:d.mn.txRea, fill:'bf-rea', isNeg:true},
+      {lbl:'MN Optimiste',val:d.mn.opt,tx:d.mn.txOpt, fill:'bf-opt', isNeg:d.mn.txOpt<0},
+    ];
+    return `<div class="m-section">
+      <div class="m-month-label">${MN[m]}</div>
+      ${rows.map(r=>`
+      <div class="bar-row">
+        <span class="bar-lbl">${r.lbl}</span>
+        ${barHtml(r.tx,r.fill,maxVal,r.isNeg)}
+        <span class="bar-val ${r.val<0?'neg-val':''}">${fmt(r.val)} <span class="pct-tag">(${pct(r.tx)})</span></span>
+      </div>`).join('')}
+    </div>`;
+  }).join('<hr class="sep">');
+
+  document.getElementById('marginSection').innerHTML =
+    `<div class="mcard"><div class="mcard-title">Marge brute & Marge nette · Réalisé vs Optimiste</div>${html}</div>`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const ms=months();
+  renderKPIs(ms);
+  renderCharts(ms);
+  renderMargins(ms);
+}
+
+render();
+</script>
+</body>
+</html>
